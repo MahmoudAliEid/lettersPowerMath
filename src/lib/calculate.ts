@@ -1,5 +1,5 @@
 import { normalizeArabicText, removeDiacritics } from './rules';
-import { digitalRoot, reduceToDigit, reduceToDigitWithSteps } from './reduce';
+import { digitalRoot, reduceToDigitWithSteps } from './reduce';
 
 // ─────────────────────────────────────────────────────────────
 // Interfaces
@@ -7,25 +7,25 @@ import { digitalRoot, reduceToDigit, reduceToDigitWithSteps } from './reduce';
 
 /**
  * Step 2 — Character analysis: each unique normalized character,
- * its positions, the position sum, and the simplified value (1-9).
+ * its positions, and the position sum (NO SIMPLIFICATION in Step 2).
  */
 export interface CharAnalysis {
   char: string;                // The normalized character
   normalizedChar: string;      // Same as char (kept for compatibility)
   positions: number[];         // Step 1: all 1-indexed positions where this char appeared
-  positionsSum: number;        // Sum of all positions
-  simplificationSteps: number[]; // Intermediate steps of digit reduction
-  charValue: number;           // Final simplified value (1-9)
+  positionsSum: number;        // Sum of all positions (NOT simplified)
+  charValue: number;           // Same as positionsSum
 }
 
 /**
- * Step 3 — Each position in the original sentence mapped to its simplified value.
+ * Step 3 — Each position in the original sentence mapped to its multiplied value.
  */
 export interface SequenceStep {
   char: string;            // Normalized character at this position
   normalizedChar: string;  // Same as char
   position: number;        // 1-indexed position
-  value: number;           // The charValue (1-9) from Step 2
+  charValue: number;       // The positionsSum from Step 2
+  value: number;           // Step 3 value: position * charValue
 }
 
 /**
@@ -41,12 +41,12 @@ export interface CalculationResult {
 
   // Step 3: Substitution sequence and total
   sequence: SequenceStep[];
-  totalSum: number;              // Sum of all simplified values (NOT reduced)
+  step3Sum: number;              // Sum of all Step 3 values
 
   // Step 4: Power calculation
-  simplifiedBase: number;        // totalSum reduced to 1-9
-  simplifiedBaseSteps: number[]; // Steps of reducing totalSum
-  powerExpression: string;       // e.g. "9 ^ 72"
+  step4Reduced: number;          // step3Sum reduced to 1-9
+  step4ReducedSteps: number[];   // Steps of reducing step3Sum
+  powerExpression: string;       // e.g. "5 ^ 797"
   powerResult: string;           // The huge BigInt result as string
   powerDigitCount: number;       // Number of digits in the power result
   powerReductionSteps: string[]; // Steps of reducing the power result
@@ -57,26 +57,6 @@ export interface CalculationResult {
 // Main calculation function
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Calculates the Arabic Jafr (الجفر العددي) value using the 4-step algorithm:
- *
- * **Step 1 — Decomposition & Numbering:**
- *   Break the sentence into individual normalized letters.
- *   Assign each a sequential index starting from 1.
- *
- * **Step 2 — Position Sum & Simplification:**
- *   For each unique letter, sum all positions where it appeared.
- *   Simplify the sum to a single digit (1-9) by repeatedly summing digits.
- *
- * **Step 3 — Substitution & Total:**
- *   Replace each letter in the original sentence with its simplified value.
- *   Sum all values to get the "total" (displayed as-is, NOT simplified).
- *
- * **Step 4 — Power & Final Reduction:**
- *   Simplify the total to a single digit → "simplified base".
- *   Compute: simplified_base ^ total using BigInt.
- *   Simplify the huge result (digit sum) to a single digit (1-9).
- */
 export function calculateArabicPower(text: string): CalculationResult {
   // ── Validation ──
   const basicCleaned = removeDiacritics(text).replace(/\s+/g, '');
@@ -99,7 +79,7 @@ export function calculateArabicPower(text: string): CalculationResult {
     normalizedCharToPositions.get(char)!.push(pos);
   }
 
-  // ── Step 2: Sum positions & simplify to 1-9 ──
+  // ── Step 2: Sum positions (NO simplification) ──
   const charValueMap = new Map<string, number>();
   const charAnalysisMap = new Map<string, CharAnalysis>();
   const charAnalysis: CharAnalysis[] = [];
@@ -109,19 +89,16 @@ export function calculateArabicPower(text: string): CalculationResult {
     const char = normalized[i];
     if (!seenChars.has(char)) {
       const positions = normalizedCharToPositions.get(char)!;
-      // Sum all positions
+      // Sum all positions WITHOUT simplifying
       const positionsSum = positions.reduce((acc, pos) => acc + pos, 0);
-      // Simplify to single digit
-      const simplification = reduceToDigitWithSteps(positionsSum);
 
-      charValueMap.set(char, simplification.result);
+      charValueMap.set(char, positionsSum);
       const analysis: CharAnalysis = {
         char,
         normalizedChar: char,
         positions,
         positionsSum,
-        simplificationSteps: simplification.steps,
-        charValue: simplification.result,
+        charValue: positionsSum,
       };
       charAnalysisMap.set(char, analysis);
       charAnalysis.push(analysis);
@@ -129,34 +106,36 @@ export function calculateArabicPower(text: string): CalculationResult {
     }
   }
 
-  // ── Step 3: Substitution & total sum ──
+  // ── Step 3: Multiplication & total sum ──
   const sequence: SequenceStep[] = [];
-  let totalSum = 0;
+  let step3Sum = 0;
 
   for (let i = 0; i < normalized.length; i++) {
     const char = normalized[i];
     const pos = i + 1;
-    const value = charValueMap.get(char)!;
+    const charValue = charValueMap.get(char)!;
+    const multipliedValue = pos * charValue;
 
     sequence.push({
       char,
       normalizedChar: char,
       position: pos,
-      value,
+      charValue,
+      value: multipliedValue,
     });
 
-    totalSum += value;
+    step3Sum += multipliedValue;
   }
 
   // ── Step 4: Power calculation & final reduction ──
 
-  // 4a. Simplify totalSum to single digit = "simplified base"
-  const baseSimplification = reduceToDigitWithSteps(totalSum);
-  const simplifiedBase = baseSimplification.result;
+  // 4a. Simplify step3Sum to single digit
+  const baseSimplification = reduceToDigitWithSteps(step3Sum);
+  const step4Reduced = baseSimplification.result;
 
-  // 4b. Compute: simplifiedBase ^ totalSum using BigInt
-  const baseBig = BigInt(simplifiedBase);
-  const exponent = BigInt(totalSum);
+  // 4b. Compute: step4Reduced ^ step3Sum using BigInt
+  const baseBig = BigInt(step4Reduced);
+  const exponent = BigInt(step3Sum);
   const powerResult = baseBig ** exponent;
   const powerResultStr = powerResult.toString();
 
@@ -168,10 +147,10 @@ export function calculateArabicPower(text: string): CalculationResult {
     normalized,
     charAnalysis,
     sequence,
-    totalSum,
-    simplifiedBase,
-    simplifiedBaseSteps: baseSimplification.steps,
-    powerExpression: `${simplifiedBase} ^ ${totalSum}`,
+    step3Sum,
+    step4Reduced,
+    step4ReducedSteps: baseSimplification.steps,
+    powerExpression: `${step4Reduced} ^ ${step3Sum}`,
     powerResult: powerResultStr,
     powerDigitCount: powerResultStr.length,
     powerReductionSteps: powerReduction.steps,

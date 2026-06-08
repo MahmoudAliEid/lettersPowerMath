@@ -58,20 +58,18 @@ export default function ResultView({ result }: ResultViewProps) {
             ١
           </div>
           <h3 className="text-lg font-bold tracking-tight">
-            الخطوة الأولى: تفكيك الحروف وترقيمها
+            الخطوة الأولى: العد الطبيعي (مواقع الحروف)
           </h3>
         </div>
 
         <Card className="glass border-white/5 overflow-hidden">
           <CardContent className="p-6">
-            {/* Normalized text label */}
             <div className="mb-4 flex items-center gap-2">
               <FileText className="w-4 h-4 text-blue-400" />
               <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
                 النص الموحد
               </span>
             </div>
-            {/* Letter grid with positions */}
             <div className="flex flex-wrap justify-center gap-3" dir="rtl">
               {result.sequence.map((step, i) => (
                 <div
@@ -92,7 +90,7 @@ export default function ResultView({ result }: ResultViewProps) {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════
-          STEP 2: Position Sum & Simplification
+          STEP 2: Position Sum (No Simplification)
           ═══════════════════════════════════════════════════════════════ */}
       <div className="space-y-4">
         <div className="flex items-center gap-3 px-2">
@@ -100,7 +98,7 @@ export default function ResultView({ result }: ResultViewProps) {
             ٢
           </div>
           <h3 className="text-lg font-bold tracking-tight">
-            الخطوة الثانية: جمع قيم الحرف الواحد وتبسيطه
+            الخطوة الثانية: تحديد قيم الحروف المكررة (بدون تبسيط)
           </h3>
         </div>
 
@@ -116,22 +114,20 @@ export default function ResultView({ result }: ResultViewProps) {
                 </div>
               </div>
               <CardContent className="p-6 space-y-4">
-                {/* Char + final value */}
                 <div className="flex items-end justify-between">
                   <span className="text-5xl font-black text-white group-hover:scale-110 group-hover:text-violet-300 transition-all duration-500">
                     {analysis.char}
                   </span>
                   <div className="text-right">
                     <span className="block text-3xl font-black text-violet-400">
-                      {analysis.charValue}
+                      {analysis.positionsSum}
                     </span>
                     <span className="text-[0.6rem] font-bold text-slate-600 uppercase">
-                      القيمة المبسطة
+                      المجموع
                     </span>
                   </div>
                 </div>
 
-                {/* Positions detail */}
                 <div className="space-y-3 pt-2 border-t border-white/5">
                   <div className="flex justify-between text-[0.65rem] font-bold">
                     <span className="text-slate-500">المواقع</span>
@@ -139,35 +135,8 @@ export default function ResultView({ result }: ResultViewProps) {
                       {analysis.positions.join(' + ')}
                     </span>
                   </div>
-                  <div className="flex justify-between text-[0.65rem] font-bold">
-                    <span className="text-slate-500">المجموع</span>
-                    <span className="text-sky-400 font-mono">
-                      {analysis.positionsSum}
-                    </span>
-                  </div>
-                  {/* Simplification chain */}
-                  {analysis.simplificationSteps.length > 1 && (
-                    <div className="flex items-center gap-1 flex-wrap justify-end">
-                      {analysis.simplificationSteps.map((step, si) => (
-                        <span key={si} className="flex items-center gap-1">
-                          <span
-                            className={`text-xs font-bold ${
-                              si === analysis.simplificationSteps.length - 1
-                                ? 'text-violet-400 text-sm'
-                                : 'text-slate-400'
-                            }`}
-                          >
-                            {step}
-                          </span>
-                          {si < analysis.simplificationSteps.length - 1 && (
-                            <ChevronRight className="w-3 h-3 text-slate-600" />
-                          )}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                   <p className="text-[0.6rem] text-slate-500 leading-relaxed italic">
-                    تم جمع الأرقام التسلسلية للمواضع ثم تبسيطها إلى رقم واحد.
+                    تم جمع الأرقام التسلسلية للمواضع بدون أي تبسيط.
                   </p>
                 </div>
               </CardContent>
@@ -177,7 +146,7 @@ export default function ResultView({ result }: ResultViewProps) {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════
-          STEP 3: Substitution & Total Sum
+          STEP 3: Multiplication & Total Sum
           ═══════════════════════════════════════════════════════════════ */}
       <div className="space-y-4">
         <div className="flex items-center gap-3 px-2">
@@ -185,13 +154,12 @@ export default function ResultView({ result }: ResultViewProps) {
             ٣
           </div>
           <h3 className="text-lg font-bold tracking-tight">
-            الخطوة الثالثة: التعويض والجمع الكلي
+            الخطوة الثالثة: ضرب قيم الخطوة ٢ في رتب الخطوة ١
           </h3>
         </div>
 
         <Card className="glass border-white/5 overflow-hidden">
           <CardContent className="p-6">
-            {/* Substitution visual */}
             <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-6 p-6 bg-white/[0.02] rounded-2xl border border-white/5 min-h-[100px]" dir="rtl">
               {result.sequence.map((step, i) => (
                 <div key={i} className="flex items-center gap-2">
@@ -199,6 +167,9 @@ export default function ResultView({ result }: ResultViewProps) {
                     <span className="text-xs font-bold text-slate-600 group-hover:text-sky-500 transition-colors">
                       {step.char}
                     </span>
+                    <div className="text-[0.65rem] text-slate-400 font-mono" dir="ltr">
+                      {step.position} × {step.charValue}
+                    </div>
                     <div className="px-3 h-10 min-w-10 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 font-bold text-lg shadow-inner group-hover:scale-110 transition-transform">
                       {step.value}
                     </div>
@@ -212,16 +183,15 @@ export default function ResultView({ result }: ResultViewProps) {
               ))}
             </div>
 
-            {/* Total */}
             <div className="mt-6 flex flex-col items-center gap-2">
               <div className="flex items-center gap-2">
                 <Sigma className="w-4 h-4 text-sky-400" />
                 <span className="text-[0.6rem] font-black text-slate-600 uppercase tracking-widest">
-                  الناتج الكلي
+                  مجموع الخطوة الثالثة
                 </span>
               </div>
               <div className="text-4xl font-black text-white bg-gradient-to-r from-sky-500/10 to-blue-500/10 px-8 py-3 rounded-2xl border border-sky-500/20 shadow-lg shadow-sky-500/5">
-                {result.totalSum}
+                {result.step3Sum}
               </div>
             </div>
           </CardContent>
@@ -237,33 +207,32 @@ export default function ResultView({ result }: ResultViewProps) {
             ٤
           </div>
           <h3 className="text-lg font-bold tracking-tight">
-            الخطوة الرابعة: حساب القوة (الأس) والتبسيط النهائي
+            الخطوة الرابعة: تبسيط ناتج الخطوة الثالثة ورفع الأس
           </h3>
         </div>
 
         <Card className="glass border-white/5 overflow-hidden">
           <CardContent className="p-6 space-y-8">
-            {/* 4a: Base simplification */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-2">
                 <Hash className="w-4 h-4 text-amber-400" />
                 <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
-                  تبسيط الأساس
+                  تبسيط ناتج الخطوة الثالثة إلى رقم أحادي
                 </span>
               </div>
               <div className="flex items-center justify-center gap-2 flex-wrap">
-                {result.simplifiedBaseSteps.map((step, i) => (
+                {result.step4ReducedSteps.map((step, i) => (
                   <span key={i} className="flex items-center gap-2">
                     <span
                       className={`font-black ${
-                        i === result.simplifiedBaseSteps.length - 1
+                        i === result.step4ReducedSteps.length - 1
                           ? 'text-amber-400 text-3xl'
                           : 'text-slate-300 text-xl'
                       }`}
                     >
                       {step}
                     </span>
-                    {i < result.simplifiedBaseSteps.length - 1 && (
+                    {i < result.step4ReducedSteps.length - 1 && (
                       <ChevronRight className="w-4 h-4 text-slate-600" />
                     )}
                   </span>
@@ -271,31 +240,29 @@ export default function ResultView({ result }: ResultViewProps) {
               </div>
             </div>
 
-            {/* 4b: Power expression */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-2">
                 <Zap className="w-4 h-4 text-amber-400" />
                 <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
-                  معادلة القوة
+                  الصيغة الأسية المطلوبة
                 </span>
               </div>
               <div className="text-center p-4 bg-white/[0.03] rounded-2xl border border-white/5">
                 <span className="text-2xl font-black text-white">
-                  {result.simplifiedBase}
+                  {result.step4Reduced}
                 </span>
                 <sup className="text-lg font-black text-amber-400 mr-1">
-                  {result.totalSum}
+                  {result.step3Sum}
                 </sup>
               </div>
             </div>
 
-            {/* 4c: Power result (abbreviated if huge) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Calculator className="w-4 h-4 text-amber-400" />
                   <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
-                    ناتج القوة
+                    حساب المجموع النهائي (Sum)
                   </span>
                 </div>
                 <span className="text-[0.6rem] font-bold text-slate-600 bg-white/5 px-2 py-1 rounded-full">
@@ -313,7 +280,6 @@ export default function ResultView({ result }: ResultViewProps) {
               </div>
             </div>
 
-            {/* 4d: Reduction walkthrough */}
             {result.powerReductionSteps && result.powerReductionSteps.length > 1 && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 mb-2">
@@ -324,7 +290,7 @@ export default function ResultView({ result }: ResultViewProps) {
                 </div>
                 <div className="flex flex-col items-center gap-4">
                   {result.powerReductionSteps
-                    .filter((_, i) => i > 0) // Skip the full huge number (already shown above)
+                    .filter((_, i) => i > 0)
                     .map((step, i, arr) => {
                       const isLast = i === arr.length - 1;
                       return (
@@ -368,7 +334,6 @@ export default function ResultView({ result }: ResultViewProps) {
           Summary Cards
           ═══════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Normalized Text Detail */}
         <Card className="glass border-white/5 glass-hover transition-all duration-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="space-y-1">
@@ -395,7 +360,6 @@ export default function ResultView({ result }: ResultViewProps) {
           </CardContent>
         </Card>
 
-        {/* Calculation Summary */}
         <Card className="glass border-white/5 glass-hover transition-all duration-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="space-y-1">
@@ -422,13 +386,13 @@ export default function ResultView({ result }: ResultViewProps) {
               },
               {
                 label: 'الناتج الكلي (خطوة ٣)',
-                value: result.totalSum,
+                value: result.step3Sum,
                 color: 'text-sky-400',
                 rtl: false,
               },
               {
-                label: 'الأساس المبسط',
-                value: result.simplifiedBase,
+                label: 'الرقم المبسط',
+                value: result.step4Reduced,
                 color: 'text-amber-400 font-black',
                 rtl: false,
               },

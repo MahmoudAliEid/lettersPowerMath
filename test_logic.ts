@@ -13,11 +13,11 @@ tests.forEach(({ text, expected }) => {
         console.log(`Normalized: ${result.normalized}`);
         console.log(`Char Analysis:`);
         result.charAnalysis.forEach(a => {
-            console.log(`  ${a.char}: positions=[${a.positions.join(',')}] sum=${a.positionsSum} → ${a.simplificationSteps.join('→')} = ${a.charValue}`);
+            console.log(`  ${a.char}: positions=[${a.positions.join(',')}] sum=${a.positionsSum} = ${a.charValue}`);
         });
         console.log(`Sequence: ${result.sequence.map(s => s.value).join(' + ')}`);
-        console.log(`Total Sum: ${result.totalSum}`);
-        console.log(`Simplified Base: ${result.simplifiedBaseSteps.join(' → ')} = ${result.simplifiedBase}`);
+        console.log(`Total Sum: ${result.step3Sum}`);
+        console.log(`Simplified Base: ${result.step4ReducedSteps.join(' → ')} = ${result.step4Reduced}`);
         console.log(`Power: ${result.powerExpression}`);
         console.log(`Power digits: ${result.powerDigitCount}`);
         console.log(`Power Reduction: ${result.powerReductionSteps.slice(1).join(' → ')}`);
