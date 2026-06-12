@@ -5,82 +5,174 @@ import { CalculationResult } from '@/lib/calculate';
 import {
   Trophy,
   FileText,
-  BarChart3,
   Calculator,
   ChevronRight,
   Sparkles,
   Hash,
   Sigma,
-  Zap,
+  Divide,
 } from 'lucide-react';
 
 interface ResultViewProps {
   result: CalculationResult | null;
 }
 
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
+const STEP_COLORS = [
+  'from-emerald-500 to-teal-600',
+  'from-violet-500 to-purple-600',
+  'from-sky-500 to-blue-600',
+  'from-amber-500 to-orange-600',
+  'from-rose-500 to-pink-600',
+];
+
+const STEP_GLOWS = [
+  'shadow-emerald-500/20',
+  'shadow-violet-500/20',
+  'shadow-sky-500/20',
+  'shadow-amber-500/20',
+  'shadow-rose-500/20',
+];
+
+const STEP_BADGE_LABELS = ['١', '٢', '٣', '٤', '٥'];
+
+function StepHeader({
+  step,
+  title,
+  subtitle,
+}: {
+  step: number;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 px-1">
+      <div
+        className={`w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br ${STEP_COLORS[step - 1]} flex items-center justify-center text-white font-black text-sm shadow-lg ${STEP_GLOWS[step - 1]}`}
+      >
+        {STEP_BADGE_LABELS[step - 1]}
+      </div>
+      <div>
+        <h3 className="text-base font-bold tracking-tight leading-snug">{title}</h3>
+        {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────────
+
 export default function ResultView({ result }: ResultViewProps) {
-  if (!result) {
-    return null;
-  }
+  if (!result) return null;
+
+  // letters[0] has index=1 (first letter in reading order = rightmost in RTL display).
+  // Using natural array order inside dir="rtl" container gives correct visual display.
+  const lettersDisplay = result.letters;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      {/* ═══════════════════════════════════════════════════════════════
-          HERO: Final Result
-          ═══════════════════════════════════════════════════════════════ */}
-      <Card className="glass overflow-hidden border-sky-500/20 shadow-[0_0_50px_rgba(56,189,248,0.15)] relative group">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-sky-500/20 to-transparent blur-2xl" />
+
+      {/* ══════════════════════════════════════════════════════════
+          HERO: Final Single Digit
+          ══════════════════════════════════════════════════════════ */}
+      <Card className="glass overflow-hidden border-rose-500/20 shadow-[0_0_60px_rgba(244,63,94,0.12)] relative group">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-rose-500/20 to-transparent blur-2xl pointer-events-none" />
         <CardHeader className="text-center pb-2">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Trophy className="w-5 h-5 text-yellow-500 animate-bounce" />
-            <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">
-              النتيجة النهائية الختامية
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <Trophy className="w-4 h-4 text-yellow-400 animate-bounce" />
+            <span className="text-[0.65rem] font-black uppercase tracking-[0.25em] text-slate-500">
+              الرقم النهائي المختزل
             </span>
           </div>
-          <CardTitle className="text-2xl font-bold text-white">القوة المختزلة</CardTitle>
+          <CardTitle className="text-xl font-bold text-white">الخطوة الخامسة — النتيجة</CardTitle>
         </CardHeader>
-        <CardContent className="pb-10 pt-4">
-          <div className="relative flex justify-center items-center px-4">
-            <div className="absolute inset-0 bg-sky-500/20 blur-[100px] rounded-full scale-50 group-hover:scale-100 transition-transform duration-1000" />
-            <span className="text-[12rem] font-black leading-none bg-gradient-to-b from-white via-sky-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] animate-in zoom-in duration-1000">
-              {result.finalReduced}
+        <CardContent className="pb-10 pt-2">
+          <div className="relative flex justify-center items-center">
+            <div className="absolute inset-0 bg-rose-500/15 blur-[120px] rounded-full scale-50 group-hover:scale-100 transition-transform duration-1000 pointer-events-none" />
+            <span className="text-[11rem] font-black leading-none bg-gradient-to-b from-white via-rose-300 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_10px_20px_rgba(0,0,0,0.6)] animate-in zoom-in duration-700">
+              {result.finalDigit}
             </span>
+          </div>
+          {/* Reduction chain */}
+          <div className="flex items-center justify-center gap-2 mt-4 flex-wrap" dir="ltr">
+            <span className="text-sm font-mono text-slate-400">{result.divisionResult}</span>
+            {result.reductionResult.steps.map((step, i) => (
+              <span key={i} className="flex items-center gap-1.5">
+                <ChevronRight className="w-3 h-3 text-slate-600" />
+                <span
+                  className={`font-black font-mono ${
+                    i === result.reductionResult.steps.length - 1
+                      ? 'text-rose-400 text-xl'
+                      : 'text-slate-300 text-sm'
+                  }`}
+                >
+                  {step}
+                </span>
+              </span>
+            ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          STEP 1: Letter Decomposition & Numbering
-          ═══════════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════
+          STEP 1+2: Positional Indices (×4)
+          ══════════════════════════════════════════════════════════ */}
       <div className="space-y-4">
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-emerald-500/20">
-            ١
-          </div>
-          <h3 className="text-lg font-bold tracking-tight">
-            الخطوة الأولى: العد الطبيعي (مواقع الحروف)
-          </h3>
-        </div>
-
+        <StepHeader
+          step={1}
+          title="الترقيم من اليمين إلى اليسار"
+          subtitle="كل حرف يأخذ رتبته (1، 2، 3…) بدءاً من اليمين"
+        />
         <Card className="glass border-white/5 overflow-hidden">
           <CardContent className="p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-blue-400" />
-              <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
-                النص الموحد
-              </span>
-            </div>
             <div className="flex flex-wrap justify-center gap-3" dir="rtl">
-              {result.sequence.map((step, i) => (
-                <div
-                  key={i}
-                  className="flex flex-col items-center gap-2 group"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-black text-white group-hover:bg-sky-500/10 group-hover:border-sky-500/30 group-hover:text-sky-300 transition-all duration-300">
-                    {step.char}
+              {lettersDisplay.map((entry, i) => (
+                <div key={i} className="flex flex-col items-center gap-1.5 group">
+                  {/* Character */}
+                  <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white group-hover:bg-emerald-500/10 group-hover:border-emerald-500/30 group-hover:text-emerald-300 transition-all duration-300">
+                    {entry.char}
                   </div>
-                  <span className="text-xs font-bold text-slate-500 group-hover:text-sky-400 transition-colors">
-                    {step.position}
+                  {/* Index */}
+                  <span className="text-xs font-bold text-slate-400 group-hover:text-emerald-400 transition-colors" dir="ltr">
+                    {entry.index}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-center text-[0.65rem] text-slate-600 mt-5 font-medium">
+              إجمالي الحروف (N) ={' '}
+              <span className="text-emerald-400 font-black">{result.letterCount}</span>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════
+          STEP 2: Positional Weight = Index × 4
+          ══════════════════════════════════════════════════════════ */}
+      <div className="space-y-4">
+        <StepHeader
+          step={2}
+          title="الوزن الموقعي = الرتبة × 4"
+          subtitle="كل رتبة تُضرب في الثابت 4"
+        />
+        <Card className="glass border-white/5 overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex flex-wrap justify-center gap-3" dir="rtl">
+              {lettersDisplay.map((entry, i) => (
+                <div key={i} className="flex flex-col items-center gap-1.5 group">
+                  {/* Character */}
+                  <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white group-hover:bg-violet-500/10 group-hover:border-violet-500/30 group-hover:text-violet-300 transition-all duration-300">
+                    {entry.char}
+                  </div>
+                  {/* Calculation */}
+                  <span className="text-[0.6rem] font-bold text-slate-500" dir="ltr">
+                    {entry.index} × 4
+                  </span>
+                  {/* Weight */}
+                  <span className="text-sm font-black text-violet-400" dir="ltr">
+                    {entry.positionalWeight}
                   </span>
                 </div>
               ))}
@@ -89,54 +181,37 @@ export default function ResultView({ result }: ResultViewProps) {
         </Card>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          STEP 2: Position Sum (No Simplification)
-          ═══════════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════
+          STEP 3: Cumulative Character Weights
+          ══════════════════════════════════════════════════════════ */}
       <div className="space-y-4">
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-violet-500/20">
-            ٢
-          </div>
-          <h3 className="text-lg font-bold tracking-tight">
-            الخطوة الثانية: تحديد قيم الحروف المكررة (بدون تبسيط)
-          </h3>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {result.charAnalysis.map((analysis, idx) => (
+        <StepHeader
+          step={3}
+          title="الوزن التراكمي لكل حرف"
+          subtitle="مجموع الأوزان الموقعية (خطوة ٢) لكل مرة ظهر فيها الحرف"
+        />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {result.cumulativeWeights.map((cum, idx) => (
             <Card
               key={idx}
-              className="glass border-white/5 hover:border-violet-500/30 transition-all duration-500 group relative overflow-hidden"
+              className="glass border-white/5 hover:border-sky-500/30 transition-all duration-500 group relative overflow-hidden"
             >
-              <div className="absolute top-0 right-0 p-2 text-right">
-                <div className="text-[0.65rem] font-black text-slate-600 group-hover:text-violet-500/50 transition-colors uppercase">
-                  حرف #{idx + 1}
-                </div>
-              </div>
-              <CardContent className="p-6 space-y-4">
+              <div className="absolute inset-0 bg-sky-500/0 group-hover:bg-sky-500/5 transition-colors duration-500" />
+              <CardContent className="p-4 space-y-3 relative">
+                {/* Character */}
                 <div className="flex items-end justify-between">
-                  <span className="text-5xl font-black text-white group-hover:scale-110 group-hover:text-violet-300 transition-all duration-500">
-                    {analysis.char}
+                  <span className="text-4xl font-black text-white group-hover:text-sky-300 transition-colors duration-300">
+                    {cum.char}
                   </span>
-                  <div className="text-right">
-                    <span className="block text-3xl font-black text-violet-400">
-                      {analysis.positionsSum}
-                    </span>
-                    <span className="text-[0.6rem] font-bold text-slate-600 uppercase">
-                      المجموع
-                    </span>
-                  </div>
+                  <span className="text-2xl font-black text-sky-400">{cum.cumulativeWeight}</span>
                 </div>
-
-                <div className="space-y-3 pt-2 border-t border-white/5">
-                  <div className="flex justify-between text-[0.65rem] font-bold">
-                    <span className="text-slate-500">المواقع</span>
-                    <span className="text-teal-400 font-mono">
-                      {analysis.positions.join(' + ')}
-                    </span>
-                  </div>
-                  <p className="text-[0.6rem] text-slate-500 leading-relaxed italic">
-                    تم جمع الأرقام التسلسلية للمواضع بدون أي تبسيط.
+                {/* Breakdown */}
+                <div className="pt-2 border-t border-white/5 space-y-1">
+                  <p className="text-[0.6rem] font-bold text-slate-500 uppercase tracking-wider">
+                    الأوزان الموقعية
+                  </p>
+                  <p className="text-xs font-mono text-slate-400" dir="ltr">
+                    {cum.positionalWeights.join(' + ')} = {cum.cumulativeWeight}
                   </p>
                 </div>
               </CardContent>
@@ -145,287 +220,192 @@ export default function ResultView({ result }: ResultViewProps) {
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          STEP 3: Multiplication & Total Sum
-          ═══════════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════
+          STEP 4: Cross Multiplication & Grand Total
+          ══════════════════════════════════════════════════════════ */}
       <div className="space-y-4">
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-sky-500/20">
-            ٣
-          </div>
-          <h3 className="text-lg font-bold tracking-tight">
-            الخطوة الثالثة: ضرب قيم الخطوة ٢ في رتب الخطوة ١
-          </h3>
-        </div>
-
+        <StepHeader
+          step={4}
+          title="الضرب التقاطعي والمجموع الكلي"
+          subtitle="لكل موقع: الوزن الموقعي × الوزن التراكمي للحرف"
+        />
         <Card className="glass border-white/5 overflow-hidden">
           <CardContent className="p-6">
-            <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-6 p-6 bg-white/[0.02] rounded-2xl border border-white/5 min-h-[100px]" dir="rtl">
-              {result.sequence.map((step, i) => (
+            {/* Cross products as equation */}
+            <div
+              className="flex flex-wrap justify-center items-center gap-x-3 gap-y-4 p-4 bg-white/[0.02] rounded-2xl border border-white/5"
+              dir="rtl"
+            >
+              {result.crossProducts.map((cp, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className="flex flex-col items-center gap-1 group">
-                    <span className="text-xs font-bold text-slate-600 group-hover:text-sky-500 transition-colors">
-                      {step.char}
+                    <span className="text-[0.6rem] font-bold text-slate-500">
+                      {cp.char}
                     </span>
-                    <div className="text-[0.65rem] text-slate-400 font-mono" dir="ltr">
-                      {step.position} × {step.charValue}
+                    <div className="text-[0.6rem] text-slate-500 font-mono" dir="ltr">
+                      {cp.positionalWeight}×{cp.cumulativeWeight}
                     </div>
-                    <div className="px-3 h-10 min-w-10 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 font-bold text-lg shadow-inner group-hover:scale-110 transition-transform">
-                      {step.value}
+                    <div className="px-2.5 h-9 min-w-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-sm shadow-inner group-hover:scale-110 group-hover:border-amber-500/50 transition-all duration-300">
+                      {cp.product}
                     </div>
                   </div>
-                  {i < result.sequence.length - 1 && (
-                    <div className="text-slate-700 font-black text-lg self-end pb-2">
-                      +
-                    </div>
+                  {i < result.crossProducts.length - 1 && (
+                    <span className="text-slate-700 font-black text-base self-end pb-2">+</span>
                   )}
                 </div>
               ))}
             </div>
 
+            {/* Grand Total */}
             <div className="mt-6 flex flex-col items-center gap-2">
               <div className="flex items-center gap-2">
-                <Sigma className="w-4 h-4 text-sky-400" />
-                <span className="text-[0.6rem] font-black text-slate-600 uppercase tracking-widest">
-                  مجموع الخطوة الثالثة
+                <Sigma className="w-4 h-4 text-amber-400" />
+                <span className="text-[0.6rem] font-black text-slate-500 uppercase tracking-widest">
+                  المجموع الكلي
                 </span>
               </div>
-              <div className="text-4xl font-black text-white bg-gradient-to-r from-sky-500/10 to-blue-500/10 px-8 py-3 rounded-2xl border border-sky-500/20 shadow-lg shadow-sky-500/5">
-                {result.step3Sum}
+              <div className="text-5xl font-black text-white bg-gradient-to-r from-amber-500/10 to-orange-500/10 px-8 py-3 rounded-2xl border border-amber-500/20 shadow-lg shadow-amber-500/5">
+                {result.grandTotal}
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          STEP 4: Power Calculation & Final Reduction
-          ═══════════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════
+          STEP 5: Division & Digit Root
+          ══════════════════════════════════════════════════════════ */}
       <div className="space-y-4">
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-amber-500/20">
-            ٤
-          </div>
-          <h3 className="text-lg font-bold tracking-tight">
-            الخطوة الرابعة: تبسيط ناتج الخطوة الثالثة ورفع الأس
-          </h3>
-        </div>
-
+        <StepHeader
+          step={5}
+          title="القسمة والاختزال الرقمي"
+          subtitle={`${result.grandTotal} ÷ ${result.letterCount} → اختزال متكرر حتى رقم واحد`}
+        />
         <Card className="glass border-white/5 overflow-hidden">
-          <CardContent className="p-6 space-y-8">
+          <CardContent className="p-6 space-y-6">
+            {/* Division */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Hash className="w-4 h-4 text-amber-400" />
+              <div className="flex items-center gap-2">
+                <Divide className="w-4 h-4 text-rose-400" />
                 <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
-                  تبسيط ناتج الخطوة الثالثة إلى رقم أحادي
+                  القسمة الدقيقة (بدون تقريب)
                 </span>
               </div>
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                {result.step4ReducedSteps.map((step, i) => (
-                  <span key={i} className="flex items-center gap-2">
-                    <span
-                      className={`font-black ${
-                        i === result.step4ReducedSteps.length - 1
-                          ? 'text-amber-400 text-3xl'
-                          : 'text-slate-300 text-xl'
-                      }`}
-                    >
-                      {step}
-                    </span>
-                    {i < result.step4ReducedSteps.length - 1 && (
-                      <ChevronRight className="w-4 h-4 text-slate-600" />
-                    )}
-                  </span>
-                ))}
+              <div className="p-4 bg-white/[0.03] rounded-2xl border border-white/5 text-center">
+                <span className="font-mono font-bold text-slate-300 text-lg" dir="ltr">
+                  {result.grandTotal} ÷ {result.letterCount} ={' '}
+                  <span className="text-rose-300">{result.divisionResult}</span>
+                </span>
               </div>
             </div>
 
+            {/* Digit root reduction */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="w-4 h-4 text-amber-400" />
+              <div className="flex items-center gap-2">
+                <Hash className="w-4 h-4 text-rose-400" />
                 <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
-                  الصيغة الأسية المطلوبة
+                  مسار الاختزال الرقمي
                 </span>
               </div>
-              <div className="text-center p-4 bg-white/[0.03] rounded-2xl border border-white/5">
-                <span className="text-2xl font-black text-white">
-                  {result.step4Reduced}
-                </span>
-                <sup className="text-lg font-black text-amber-400 mr-1">
-                  {result.step3Sum}
-                </sup>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Calculator className="w-4 h-4 text-amber-400" />
-                  <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
-                    حساب المجموع النهائي (Sum)
+              <div className="flex flex-col items-center gap-3">
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 text-center w-full">
+                  <p className="text-[0.6rem] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                    جمع كل الأرقام (بما فيها ما بعد الفاصلة)
+                  </p>
+                  <span className="font-mono text-slate-300 text-sm" dir="ltr">
+                    {result.divisionResult.replace('.', '').split('').join(' + ')}
                   </span>
                 </div>
-                <span className="text-[0.6rem] font-bold text-slate-600 bg-white/5 px-2 py-1 rounded-full">
-                  {result.powerDigitCount} خانة
-                </span>
-              </div>
-              <div className="p-4 bg-white/[0.02] rounded-2xl border border-white/5 overflow-x-auto max-h-32 scrollbar-hide">
-                <p className="text-sm font-mono font-bold text-slate-300 break-all leading-relaxed" dir="ltr">
-                  {result.powerResult.length > 500
-                    ? result.powerResult.substring(0, 250) +
-                      ' ... ' +
-                      result.powerResult.substring(result.powerResult.length - 250)
-                    : result.powerResult}
-                </p>
+                <div className="flex flex-col items-center gap-2">
+                  {result.reductionResult.steps.map((step, i, arr) => {
+                    const isLast = i === arr.length - 1;
+                    return (
+                      <div key={i} className="flex flex-col items-center gap-1">
+                        <span
+                          className={`font-black font-mono transition-all ${
+                            isLast
+                              ? 'text-5xl text-rose-400 drop-shadow-[0_0_20px_rgba(244,63,94,0.5)]'
+                              : 'text-2xl text-slate-300'
+                          }`}
+                        >
+                          {step}
+                        </span>
+                        {!isLast && (
+                          <div className="flex flex-col items-center gap-0.5 text-slate-600">
+                            <ChevronRight className="w-3 h-3 rotate-90" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-
-            {result.powerReductionSteps && result.powerReductionSteps.length > 1 && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="w-4 h-4 text-yellow-500" />
-                  <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
-                    مسار الاختزال النهائي
-                  </span>
-                </div>
-                <div className="flex flex-col items-center gap-4">
-                  {result.powerReductionSteps
-                    .filter((_, i) => i > 0)
-                    .map((step, i, arr) => {
-                      const isLast = i === arr.length - 1;
-                      return (
-                        <div key={i} className="flex flex-col items-center gap-2">
-                          {i === 0 && (
-                            <div className="flex flex-col items-center gap-1 text-slate-500">
-                              <span className="text-[0.6rem] font-black uppercase tracking-widest opacity-50">
-                                مجموع الخانات
-                              </span>
-                              <ChevronRight className="w-4 h-4 rotate-90" />
-                            </div>
-                          )}
-                          <span
-                            className={`font-black ${
-                              isLast
-                                ? 'text-4xl text-amber-400'
-                                : 'text-xl text-slate-300'
-                            }`}
-                          >
-                            {step}
-                          </span>
-                          {!isLast && (
-                            <div className="flex flex-col items-center gap-1 text-slate-500">
-                              <ChevronRight className="w-4 h-4 rotate-90" />
-                              <span className="text-[0.6rem] font-black uppercase tracking-widest opacity-50">
-                                جمع المكونات
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════════════════
           Summary Cards
-          ═══════════════════════════════════════════════════════════════ */}
+          ══════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="glass border-white/5 glass-hover transition-all duration-500">
+        {/* Normalized text */}
+        <Card className="glass border-white/5 transition-all duration-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div className="space-y-1">
-              <CardTitle className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-400" />
-                النص الموحد
-              </CardTitle>
-            </div>
+            <CardTitle className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
+              <FileText className="w-4 h-4 text-blue-400" />
+              النص الموحد
+            </CardTitle>
             <div className="w-2 h-2 rounded-full bg-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="p-6 bg-white/[0.03] rounded-2xl border border-white/5">
-              <p
-                className="text-3xl font-bold text-center text-sky-200 tracking-[0.3em] break-all"
-                dir="rtl"
-              >
-                {result.normalized
-                  .trim()
-                  .replace(/\s+/g, ' ')
-                  .split('')
-                  .join(' ')}
+            <div className="p-4 bg-white/[0.03] rounded-2xl border border-white/5">
+              <p className="text-2xl font-bold text-center text-sky-200 tracking-[0.3em] break-all" dir="rtl">
+                {result.normalized.split('').join(' ')}
               </p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="glass border-white/5 glass-hover transition-all duration-500">
+        {/* Numeric summary */}
+        <Card className="glass border-white/5 transition-all duration-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div className="space-y-1">
-              <CardTitle className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-purple-400" />
-                ملخص الأرقام
-              </CardTitle>
-            </div>
+            <CardTitle className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
+              <Calculator className="w-4 h-4 text-purple-400" />
+              ملخص الحساب
+            </CardTitle>
             <div className="w-2 h-2 rounded-full bg-purple-500" />
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2">
             {[
-              {
-                label: 'النص الأصلي',
-                value: result.original,
-                color: 'text-slate-300',
-                rtl: true,
-              },
-              {
-                label: 'إجمالي عدد الحروف',
-                value: result.normalized.length,
-                color: 'text-sky-400',
-                rtl: false,
-              },
-              {
-                label: 'الناتج الكلي (خطوة ٣)',
-                value: result.step3Sum,
-                color: 'text-sky-400',
-                rtl: false,
-              },
-              {
-                label: 'الرقم المبسط',
-                value: result.step4Reduced,
-                color: 'text-amber-400 font-black',
-                rtl: false,
-              },
-              {
-                label: 'عدد خانات ناتج القوة',
-                value: result.powerDigitCount,
-                color: 'text-slate-400',
-                rtl: false,
-              },
-              {
-                label: 'القيمة النهائية',
-                value: result.finalReduced,
-                color: 'text-white font-black text-xl',
-                rtl: false,
-              },
+              { label: 'النص الأصلي', value: result.original, rtl: true, color: 'text-slate-300' },
+              { label: 'عدد الحروف (N)', value: result.letterCount, color: 'text-emerald-400' },
+              { label: 'المجموع الكلي (خطوة ٤)', value: result.grandTotal, color: 'text-amber-400' },
+              { label: 'ناتج القسمة', value: result.divisionResult, color: 'text-rose-300 font-mono text-xs' },
+              { label: 'الرقم النهائي', value: result.finalDigit, color: 'text-white font-black text-xl' },
             ].map((item, i) => (
               <div
                 key={i}
-                className="flex justify-between items-center p-3 rounded-xl bg-white/[0.02] border border-white/5"
+                className="flex justify-between items-center p-2.5 rounded-xl bg-white/[0.02] border border-white/5"
               >
-                <span className="text-xs font-bold text-slate-500">
-                  {item.label}
-                </span>
+                <span className="text-xs font-bold text-slate-500">{item.label}</span>
                 <span
                   className={`${item.color} break-all text-right ml-4`}
-                  dir={item.rtl ? 'rtl' : 'ltr'}
+                  dir={'rtl' in item && item.rtl ? 'rtl' : 'ltr'}
                 >
-                  {item.value}
+                  {String(item.value)}
                 </span>
               </div>
             ))}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Sparkle footer note */}
+      <div className="flex items-center justify-center gap-2 text-slate-600 text-xs pb-4">
+        <Sparkles className="w-3 h-3" />
+        <span>تم الحساب باستخدام دقة علمية كاملة — بدون تقريب (Arbitrary-Precision)</span>
+        <Sparkles className="w-3 h-3" />
       </div>
     </div>
   );

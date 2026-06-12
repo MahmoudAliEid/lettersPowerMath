@@ -1,46 +1,49 @@
 /**
- * Reduction utilities for the Arabic Jafr numerical calculation.
- * Provides digit-sum reduction for both regular numbers and BigInt.
+ * Reduction utilities for the Arabic numerical calculation.
+ * Provides digit-sum reduction supporting both integers and decimal strings.
  */
 
 export interface ReductionResult {
   finalResult: number;
-  steps: string[]; // Intermediate strings showing the process
+  steps: number[]; // All intermediate sums until single digit
 }
 
 /**
- * Digital root for BigInt values.
- * Repeatedly sums all digits until result is a single digit (1-9).
+ * Digital root reduction that works on ANY string representation of a number,
+ * including decimals (e.g. "708.5" → digits: 7,0,8,5 → 20 → 2+0 → 2).
  *
- * @param val - The BigInt (or string representation) to reduce
- * @returns The single-digit result and intermediate steps
+ * The decimal point itself is IGNORED — only the digit characters are summed.
+ *
+ * @param val - Number as string (may contain a decimal point)
+ * @returns Single-digit result (0-9) and all intermediate sums
  */
-export function digitalRoot(val: bigint | string): ReductionResult {
-  let currentValStr = typeof val === 'bigint' ? val.toString() : val;
-  const steps: string[] = [currentValStr];
+export function digitalRoot(val: string): ReductionResult {
+  const steps: number[] = [];
 
-  while (currentValStr.length > 1) {
-    // Sum all digits together
-    const sum = currentValStr.split('').reduce((acc, digit) => {
-      return acc + BigInt(digit);
-    }, BigInt(0));
+  // Extract only digit characters (ignore '.', '-', etc.)
+  let current = val
+    .replace(/[^0-9]/g, '')   // strip everything except digits
+    .split('')
+    .reduce((acc, d) => acc + parseInt(d, 10), 0);
 
-    currentValStr = sum.toString();
-    steps.push(currentValStr);
+  steps.push(current);
+
+  while (current > 9) {
+    current = current
+      .toString()
+      .split('')
+      .reduce((acc, d) => acc + parseInt(d, 10), 0);
+    steps.push(current);
   }
 
   return {
-    finalResult: parseInt(currentValStr, 10),
+    finalResult: current,
     steps,
   };
 }
 
 /**
- * Reduce a regular number to a single digit (1-9) by repeatedly
- * summing its digits. Used for Step 2 (position sum simplification).
- *
- * @param num - The number to reduce
- * @returns Single digit 1-9 (or 0 if input is 0)
+ * Reduce a regular integer to a single digit (0-9) by summing its digits.
  */
 export function reduceToDigit(num: number): number {
   while (num > 9) {
@@ -53,10 +56,7 @@ export function reduceToDigit(num: number): number {
 }
 
 /**
- * Reduce a regular number to a single digit, returning all intermediate steps.
- *
- * @param num - The number to reduce
- * @returns The final digit and all intermediate values
+ * Reduce a regular integer to a single digit, returning all intermediate steps.
  */
 export function reduceToDigitWithSteps(num: number): { result: number; steps: number[] } {
   const steps: number[] = [num];
