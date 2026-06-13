@@ -18,7 +18,7 @@ import { digitalRoot, ReductionResult } from './reduce';
 // ─────────────────────────────────────────────────────────────
 // Configure Decimal.js for maximum precision
 // ─────────────────────────────────────────────────────────────
-Decimal.set({ precision: 100, rounding: Decimal.ROUND_FLOOR });
+Decimal.set({ precision: 100, rounding: Decimal.ROUND_HALF_UP });
 
 // ─────────────────────────────────────────────────────────────
 // Interfaces

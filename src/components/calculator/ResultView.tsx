@@ -91,26 +91,33 @@ export default function ResultView({ result }: ResultViewProps) {
           <div className="relative flex justify-center items-center">
             <div className="absolute inset-0 bg-rose-500/15 blur-[120px] rounded-full scale-50 group-hover:scale-100 transition-transform duration-1000 pointer-events-none" />
             <span className="text-[11rem] font-black leading-none bg-gradient-to-b from-white via-rose-300 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_10px_20px_rgba(0,0,0,0.6)] animate-in zoom-in duration-700">
-              {result.finalDigit}
+              {result.reductionResult.displayResult}
             </span>
           </div>
-          {/* Reduction chain */}
+          {/* Paired reduction chain: divisionResult → step1 → step2 → ... → finalResult */}
           <div className="flex items-center justify-center gap-2 mt-4 flex-wrap" dir="ltr">
-            <span className="text-sm font-mono text-slate-400">{result.divisionResult}</span>
-            {result.reductionResult.steps.map((step, i) => (
-              <span key={i} className="flex items-center gap-1.5">
-                <ChevronRight className="w-3 h-3 text-slate-600" />
-                <span
-                  className={`font-black font-mono ${
-                    i === result.reductionResult.steps.length - 1
-                      ? 'text-rose-400 text-xl'
-                      : 'text-slate-300 text-sm'
-                  }`}
-                >
-                  {step}
+            {/* Raw division result (truncated if very long) */}
+            <span className="text-sm font-mono text-slate-400">
+              {result.divisionResult.length > 18
+                ? result.divisionResult.slice(0, 8) + '…' + result.divisionResult.slice(-4)
+                : result.divisionResult}
+            </span>
+            {result.reductionResult.reductionSteps.map((step, i) => {
+              const isLast = i === result.reductionResult.reductionSteps.length - 1;
+              const label  = step.frac !== null ? `${step.int}.${step.frac}` : `${step.int}`;
+              return (
+                <span key={i} className="flex items-center gap-1.5">
+                  <ChevronRight className="w-3 h-3 text-slate-600" />
+                  <span
+                    className={`font-black font-mono ${
+                      isLast ? 'text-rose-400 text-xl' : 'text-slate-300 text-sm'
+                    }`}
+                  >
+                    {label}
+                  </span>
                 </span>
-              </span>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -299,46 +306,84 @@ export default function ResultView({ result }: ResultViewProps) {
               </div>
             </div>
 
-            {/* Digit root reduction */}
+            {/* Paired digit-root reduction */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Hash className="w-4 h-4 text-rose-400" />
                 <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
-                  مسار الاختزال الرقمي
+                  الاختزال الرقمي المزدوج
                 </span>
               </div>
-              <div className="flex flex-col items-center gap-3">
-                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 text-center w-full">
-                  <p className="text-[0.6rem] font-bold text-slate-600 uppercase tracking-wider mb-1">
-                    جمع كل الأرقام (بما فيها ما بعد الفاصلة)
+
+              {/* Digit-sum breakdown for each segment */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Integer segment */}
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                  <p className="text-[0.6rem] font-bold text-slate-600 uppercase tracking-wider mb-2">
+                    جمع أرقام الجزء الصحيح
                   </p>
-                  <span className="font-mono text-slate-300 text-sm" dir="ltr">
-                    {result.divisionResult.replace('.', '').split('').join(' + ')}
+                  <span className="font-mono text-slate-300 text-xs" dir="ltr">
+                    {(() => {
+                      const intPart = result.divisionResult.split('.')[0].replace(/[^0-9]/g, '');
+                      const digits  = intPart.split('');
+                      const sum     = digits.reduce((a, d) => a + parseInt(d, 10), 0);
+                      return digits.length <= 12
+                        ? `${digits.join(' + ')} = ${sum}`
+                        : `${digits.slice(0, 6).join(' + ')} + … = ${sum}`;
+                    })()}
                   </span>
                 </div>
-                <div className="flex flex-col items-center gap-2">
-                  {result.reductionResult.steps.map((step, i, arr) => {
-                    const isLast = i === arr.length - 1;
-                    return (
-                      <div key={i} className="flex flex-col items-center gap-1">
-                        <span
-                          className={`font-black font-mono transition-all ${
-                            isLast
-                              ? 'text-5xl text-rose-400 drop-shadow-[0_0_20px_rgba(244,63,94,0.5)]'
-                              : 'text-2xl text-slate-300'
-                          }`}
-                        >
-                          {step}
-                        </span>
-                        {!isLast && (
-                          <div className="flex flex-col items-center gap-0.5 text-slate-600">
-                            <ChevronRight className="w-3 h-3 rotate-90" />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+
+                {/* Fractional segment */}
+                {result.reductionResult.fracFinalResult !== null && (
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                    <p className="text-[0.6rem] font-bold text-slate-600 uppercase tracking-wider mb-2">
+                      جمع أرقام الجزء العشري
+                    </p>
+                    <span className="font-mono text-slate-300 text-xs" dir="ltr">
+                      {(() => {
+                        const fracPart = (result.divisionResult.split('.')[1] ?? '').replace(/[^0-9]/g, '');
+                        const digits   = fracPart.split('');
+                        const sum      = digits.reduce((a, d) => a + parseInt(d, 10), 0);
+                        return digits.length <= 12
+                          ? `${digits.join(' + ')} = ${sum}`
+                          : `${digits.slice(0, 6).join(' + ')} + … (${digits.length} أرقام) = ${sum}`;
+                      })()}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Step-by-step paired reduction chain */}
+              <div className="flex flex-col items-center gap-2 pt-2">
+                {result.reductionResult.reductionSteps.map((step, i, arr) => {
+                  const isLast = i === arr.length - 1;
+                  const label  = step.frac !== null ? `${step.int}.${step.frac}` : `${step.int}`;
+                  return (
+                    <div key={i} className="flex flex-col items-center gap-1">
+                      <span
+                        className={`font-black font-mono transition-all ${
+                          isLast
+                            ? 'text-5xl text-rose-400 drop-shadow-[0_0_20px_rgba(244,63,94,0.5)]'
+                            : 'text-2xl text-slate-300'
+                        }`}
+                      >
+                        {label}
+                      </span>
+                      {!isLast && (
+                        <div className="flex flex-col items-center gap-0.5 text-slate-600">
+                          <ChevronRight className="w-3 h-3 rotate-90" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {/* Edge case: no reduction needed (already single digits) */}
+                {result.reductionResult.reductionSteps.length === 0 && (
+                  <span className="font-black font-mono text-5xl text-rose-400 drop-shadow-[0_0_20px_rgba(244,63,94,0.5)]">
+                    {result.reductionResult.displayResult}
+                  </span>
+                )}
               </div>
             </div>
           </CardContent>
@@ -382,7 +427,7 @@ export default function ResultView({ result }: ResultViewProps) {
               { label: 'عدد الحروف (N)', value: result.letterCount, color: 'text-emerald-400' },
               { label: 'المجموع الكلي (خطوة ٤)', value: result.grandTotal, color: 'text-amber-400' },
               { label: 'ناتج القسمة', value: result.divisionResult, color: 'text-rose-300 font-mono text-xs' },
-              { label: 'الرقم النهائي', value: result.finalDigit, color: 'text-white font-black text-xl' },
+              { label: 'الرقم النهائي', value: result.reductionResult.displayResult, color: 'text-white font-black text-xl' },
             ].map((item, i) => (
               <div
                 key={i}
